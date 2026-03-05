@@ -23,7 +23,7 @@ class BookViewModel(
     
     // Public immutable state for UI observation
     val books: StateFlow<List<Book>> = _books.asStateFlow()
-
+    val totalPages: Int get() = _books.value.sumOf { it.nbPages }
     // Loading state
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()

@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ElOuedUniv.maktaba.data.model.Book
@@ -28,7 +29,11 @@ fun BookListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Maktaba - My Library") },
+                title = {
+                    val count = books.size
+                    Text(text = "Maktaba - My Library                         Books Count: $count " +
+                            "TotalPages: ${viewModel.totalPages} ")
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -99,9 +104,9 @@ fun BookItem(book: Book) {
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -117,7 +122,7 @@ fun BookItem(book: Book) {
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
-                
+
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = "Pages:",
