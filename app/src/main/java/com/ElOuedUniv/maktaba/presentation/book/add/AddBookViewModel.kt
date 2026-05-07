@@ -1,19 +1,27 @@
 package com.ElOuedUniv.maktaba.presentation.book.add
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.ElOuedUniv.maktaba.data.model.Book
+import com.ElOuedUniv.maktaba.data.repository.SupabaseBookRepositoryImpl
 import com.ElOuedUniv.maktaba.domain.usecase.AddBookUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class AddBookViewModel @Inject constructor(
-    private val addBookUseCase: AddBookUseCase
+    private val addBookUseCase: AddBookUseCase,
+    private val bookRepository: SupabaseBookRepositoryImpl, // Direct injection to use storage method
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(AddBookUiState())
     val uiState = _uiState.asStateFlow()
 
@@ -29,6 +37,10 @@ class AddBookViewModel @Inject constructor(
             }
             is AddBookUiAction.OnPagesChange -> {
                 _uiState.update { it.copy(nbPages = action.pages) }
+                validateInputs()
+            }
+            is AddBookUiAction.OnImageSelected -> {
+                _uiState.update { it.copy(imageUri = action.uri) }
                 validateInputs()
             }
             AddBookUiAction.OnAddClick -> {
@@ -49,7 +61,7 @@ class AddBookViewModel @Inject constructor(
         val pagesInt = nbPages.toIntOrNull()
         val pagesError = if (pagesInt == null || pagesInt <= 0) "Pages must be a positive number" else null
 
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 titleError = titleError,
                 isbnError = isbnError,
@@ -60,13 +72,32 @@ class AddBookViewModel @Inject constructor(
     }
 
     private fun addBook() {
-        val currentState = _uiState.value
-        val book = Book(
-            isbn = currentState.isbn,
-            title = currentState.title,
-            nbPages = currentState.nbPages.toIntOrNull() ?: 0
-        )
-        addBookUseCase(book)
-        _uiState.update { it.copy(isSuccess = true) }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val currentState = _uiState.value
+                var uploadedImageUrl: String? = null
+
+                // Bonus 4.2: Upload Image if selected
+                currentState.imageUri?.let { uri ->
+                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    if (bytes != null) {
+                        uploadedImageUrl = bookRepository.uploadBookCover(currentState.isbn, bytes)
+                    }
+                }
+
+                val book = Book(
+                    isbn = currentState.isbn,
+                    title = currentState.title,
+                    nbPages = currentState.nbPages.toIntOrNull() ?: 0,
+                    imageUrl = uploadedImageUrl
+                )
+
+                addBookUseCase(book)
+                _uiState.update { it.copy(isSuccess = true, isLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+            }
+        }
     }
 }

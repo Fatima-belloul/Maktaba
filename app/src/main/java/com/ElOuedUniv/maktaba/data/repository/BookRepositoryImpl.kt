@@ -21,17 +21,17 @@ class BookRepositoryImpl @Inject constructor() : BookRepository {
     private val booksFlow = MutableSharedFlow<List<Book>>(replay = 1).apply {
         tryEmit(_booksList.toList())
     }
-    
+
     override fun getAllBooks(): Flow<List<Book>> = flow {
         delay(2000) // Simulate delay
         emitAll(booksFlow)
     }
 
-    override fun getBookByIsbn(isbn: String): Book? {
+    override suspend fun getBookByIsbn(isbn: String): Book? {
         return _booksList.find { it.isbn == isbn }
     }
 
-    override fun addBook(book: Book) {
+    override suspend fun addBook(book: Book) {
         _booksList.add(book)
         booksFlow.tryEmit(_booksList.toList())
     }

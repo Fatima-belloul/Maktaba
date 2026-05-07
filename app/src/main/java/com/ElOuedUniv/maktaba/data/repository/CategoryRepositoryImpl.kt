@@ -34,13 +34,13 @@ class CategoryRepositoryImpl @Inject constructor() : CategoryRepository {
     private val categoriesFlow = MutableSharedFlow<List<Category>>(replay = 1).apply {
         tryEmit(_categoriesList)
     }
-    
+
     override fun getAllCategories(): Flow<List<Category>> = flow {
         delay(2000) // Simulate delay
         emitAll(categoriesFlow)
     }
 
-    override fun getCategoryById(id: String): Category? {
+    override suspend fun getCategoryById(id: String): Category? {
         return _categoriesList.find { it.id == id }
     }
 }

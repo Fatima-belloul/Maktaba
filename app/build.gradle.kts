@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.dagger.hilt.plugin)
+    kotlin("plugin.serialization") version "2.2.10" // Match your Kotlin version
 }
 
 android {
@@ -46,7 +47,11 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.supabase.postgrest)
+    implementation(libs.supabase.storage)
+    implementation(libs.ktor.client.android)
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)

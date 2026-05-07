@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
@@ -24,13 +25,13 @@ class BookViewModel @Inject constructor(
     val uiState: StateFlow<BookUiState> = _uiState.asStateFlow()
 
     init {
-        loadBooks()
+        observeBooks()
     }
 
-    fun loadBooks() {
+    private fun observeBooks() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
             getBooksUseCase()
+                .onStart { _uiState.update { it.copy(isLoading = true) } }
                 .catch { e ->
                     _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
                 }
@@ -40,17 +41,19 @@ class BookViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Exercise 3 - Handle UI Actions
-     */
     fun onAction(action: BookUiAction) {
         when (action) {
-            BookUiAction.RefreshBooks -> refreshBooks()
+            BookUiAction.RefreshBooks -> observeBooks()
             BookUiAction.OnAddBookClick -> {
                 _uiState.update { it.copy(isAddingBook = true) }
             }
             BookUiAction.OnDismissAddBook -> {
                 _uiState.update { it.copy(isAddingBook = false) }
+            }
+            BookUiAction.ToggleGridColumns -> {
+                _uiState.update {
+                    it.copy(gridColumns = if (it.gridColumns == 2) 3 else 2)
+                }
             }
             is BookUiAction.OnAddBookConfirm -> {
                 val newBook = Book(
@@ -58,13 +61,17 @@ class BookViewModel @Inject constructor(
                     title = action.title,
                     nbPages = action.nbPages
                 )
-                addBookUseCase(newBook)
+                // Dismiss immediately for better UX
                 _uiState.update { it.copy(isAddingBook = false) }
+
+                viewModelScope.launch {
+                    try {
+                        addBookUseCase(newBook)
+                    } catch (e: Exception) {
+                        _uiState.update { it.copy(errorMessage = "Failed to add book: ${e.message}") }
+                    }
+                }
             }
         }
-    }
-
-    fun refreshBooks() {
-        loadBooks()
     }
 }
